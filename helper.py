@@ -42,12 +42,7 @@ def make_spaces(X, Y, embedding=1):
     xk_pts = np.zeros((N-embedding, dimxk))
     k_pts = np.zeros((N-embedding, dimk))
 
-    xky_pts = np.zeros((N-embedding, dimxky))
-    ky_pts = np.zeros((N-embedding, dimky))
-    xk_pts = np.zeros((N-embedding, dimxk))
-    k_pts = np.zeros((N-embedding, dimk))
-
-
+    
     # Set the last column to the Y column. Start at the embedding index and take up to N - embedding values
     xky_pts[:, embedding+1] = Y.flatten()[embedding-1:][0:N-embedding]
     ky_pts[:, embedding] = Y.flatten()[embedding-1:][0:N-embedding]
@@ -55,7 +50,6 @@ def make_spaces(X, Y, embedding=1):
 
     # start from embedding value and decrease to 0
     for i, j in enumerate(range(embedding, -1, -1)):
-        #print(j,i)  # Make sure j and i are doing what you want.
 
         # set first column to the X values from embedding to the length of the array
         # then take from 0 to N-embedding
@@ -72,9 +66,25 @@ def make_spaces(X, Y, embedding=1):
     return xky_pts, ky_pts, xk_pts, k_pts, N-embedding
 
 
-def safetyCheck():
+def safetyCheck(X,Y):
     '''
     Checks for duplicate data and ends TE estimation if duplicate
     data points are found
+
+    Parameters
+    ----------
+    X: Array that holds the X values
+    Y: Array that holds the Y values
+
+    Returns
+    -------
+    True if the safety check passes and False otherwise
     '''
-    pass
+    checkDict = {}
+    for i in range(len(X)):
+        if checkDict.get((X[i],Y[i])) == None:
+            checkDict[(X[i],Y[i])] = 1
+        else:
+            return False
+    return True
+

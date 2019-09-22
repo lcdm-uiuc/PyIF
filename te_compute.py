@@ -30,9 +30,9 @@ def te_compute(X, Y, k=1, embedding=1, safetyCheck=False, GPU=False):
 
 
 
-    #TODO: Add function
-    if safetyCheck:
-        pass
+    if safetyCheck and (not helper.safetyCheck(X,Y)):
+        print("Safety check failed. There are duplicates in the data.")
+        return None
 
     # Make Spaces
     xkyPts, kyPts, xkPts, kPts, nPts = helper.make_spaces(X, Y,
@@ -45,10 +45,12 @@ def te_compute(X, Y, k=1, embedding=1, safetyCheck=False, GPU=False):
     kkdTree = KDTree(kPts, metric="chebyshev")
 
     if GPU:
-        pass
+        TE = gte.compute(xkykdTree, kykdTree, xkkdTree, kkdTree,
+        xkyPts, kyPts, xkPts, kPts, nPts, X, embedding=embedding, k=k)
+
     else:
         TE = cte.compute(xkykdTree, kykdTree, xkkdTree, kkdTree,
-        xkyPts, kyPts, xkPts, kPts, nPts, X, embedding=embedding, k=1)
+        xkyPts, kyPts, xkPts, kPts, nPts, X, embedding=embedding, k=k)
 
 
     return TE

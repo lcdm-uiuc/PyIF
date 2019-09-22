@@ -5,48 +5,66 @@ from scipy.special import digamma  # to compute log derivative of gamma function
 
 
 @njit(nopython=True, parallel=True)
-def countsAndDigamma(xcntX_XKY_arr, xcntX_XK_arr, xxdistXKY, xxdistXK, xkyPts,
-embedding, X):
+def countsInKD(fn_cntX_XKY_arr, fn_cntX_XK_arr, fn_xdistXKY, fn_xdistXK, xkyPts, embedding, X):
     """
-    Computes counts for distances less than xdistXKY & xdistXK and stores the value of the digamma funciton
-    applied to these numbers in the cntX_XKY_arr and cntX_XK_arr respectively.
+    Computes counts for distances less than xdistXKY & xdistXK and stores them in cntX_XKY_arr and cntX_XK_arr respectively.
 
     Parameters
     ----------
-    cntX_XKY_arr: array
-    cntX_XK_arr: array
-
+    fn_cntX_XKY_arr: array that holds how many points are within its respective XKY dist
+    fn_cntX_XK_arr: array that holds how many points are within its respective XK dist
+    fn_xdistXKY: array that holds the X distance in the xky space
+    fn_xdistXK: array that holds the K distance
+    embedding: integer containg number of lag periods to consider
+    xkyPts: 2D array that holds points in the XKY subspace
+    X: array that holds all X points
+    
+       
     Returns
     -------
-    None
+    No return values
     """
+
      #Get distances
     for i in prange(len(xkyPts) - embedding):
-        #print(i)
-        xcntX_XKY_arr[i] = 0
-        xcntX_XK_arr[i] = 0
+        fn_cntX_XKY_arr[i] = 0
+        fn_cntX_XK_arr[i] = 0
         point = xkyPts[i][0]
         for j in range(embedding, len(X)):
             difference = abs(point - X[j])
-            if difference <= xxdistXKY[i] and difference != 0:
-                xcntX_XKY_arr[i] += 1
-            if difference <= xxdistXK[i] and difference != 0:
-                xcntX_XK_arr[i] += 1
+            if difference <= fn_xdistXKY[i] and difference != 0:
+                fn_cntX_XKY_arr[i] += 1
+            if difference <= fn_xdistXK[i] and difference != 0:
+                fn_cntX_XK_arr[i] += 1
 
-        if xcntX_XKY_arr[i] == 0:
-            xcntX_XKY_arr[i] = 1
-        if xcntX_XK_arr[i] == 0:
-            xcntX_XK_arr[i] = 1
+        if fn_cntX_XKY_arr[i] == 0:
+            fn_cntX_XKY_arr[i] = 1
+        if fn_cntX_XK_arr[i] == 0:
+            fn_cntX_XK_arr[i] = 1
 
 def compute(xkykdTree, kykdTree, xkkdTree, kkdTree,
 xkyPts, kyPts, xkPts, kPts, nPts, X, embedding=1, k=1):
     '''
+    Computes the TE
+
     Parameters
     ----------
+    xkykdTree: KD tree of the xky subspace
+    kykdTree: KD tree of the ky subspace
+    xkkdTree: KD tree of the xk subspace
+    kkdTree: KD tree of the k subspace
+    xkyPts: array of the points in the xky subspace
+    kyPts: array of the points in the ky subspace
+    xkPts: array of the xk subspace
+    kPts: array of the k subspace
+    nPts: total number of points
+    X: array of the X points
+    embedding: number of the wanted embedding value
+    k: number of the nearest neighbors
 
     Returns
     -------
-    TE:
+    TE: The transfer entropy estimate 
     '''
 
     #variables to store the distance to the kth neighbor in different spaces
@@ -86,21 +104,11 @@ xkyPts, kyPts, xkPts, kPts, nPts, X, embedding=1, k=1):
      # temp counters
     Cnt1, Cnt2 = 0,0
 
-    ArCnts1 = []
-    ArCnts2 = []
-
-
-
-
 
     cntX_XKY_arr = np.zeros(len(xkyPts) - embedding, dtype="float")
     cntX_XK_arr = np.zeros(len(xkyPts) - embedding, dtype="float")
 
-    threadsPerBlock = 32
-    blocksPerGrid = (len(xkyPts) - embedding + threadsPerBlock - 1) // threadsPerBlock
-
-    #countsAndDigamma[blocksPerGrid, threadsPerBlock](cntX_XKY_arr, cntX_XK_arr, X, xkyPts, xdistXKY, xdistXK)
-    countsAndDigamma(cntX_XKY_arr, cntX_XK_arr, xdistXKY, xdistXK, xkyPts, embedding, X)
+    countsInKD(cntX_XKY_arr, cntX_XK_arr, xdistXKY, xdistXK, xkyPts, embedding, X)
     vfunc = np.vectorize(digamma)
     cntX_XKY_arr = vfunc(cntX_XKY_arr)
     cntX_XK_arr = vfunc(cntX_XK_arr)
