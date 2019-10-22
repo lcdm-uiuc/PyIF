@@ -26,7 +26,9 @@ def te_compute(X, Y, k=1, embedding=1, safetyCheck=False, GPU=False):
 
     assert_true(k>=1, msg="K should be greater than or equal to 1")
     assert_true(embedding >= 1, msg='The embedding must be greater than or equal to 1')
-    assert_true( len(X) == len(Y), msg='The length of X & Y are not equal')
+    assert_true(type(X) == np.ndarray, msg='X should be a numpy array')
+    assert_true(type(Y) == np.ndarray, msg='Y should be a numpy array')
+    assert_true(len(X) == len(Y), msg='The length of X & Y are not equal')
 
 
 

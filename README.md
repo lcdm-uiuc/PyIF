@@ -7,7 +7,7 @@ Then `from PyTE import te_compute` to import the needed functions. Then all that
 
 ## Installation
 
-TODO: Pip installation. Put the name it is called in pip here
+To install from pip all that is needed is run the line `pip install PyTE`.
 
 
 ## Example
