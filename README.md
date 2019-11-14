@@ -10,6 +10,11 @@ Then `from PyTE import te_compute` to import the needed functions. Then all that
 To install from pip all that is needed is run the line `pip install PyTE`.
 
 
+To install a the development release of Py-TE run the following command
+```bash
+pip install -e .
+```
+
 ## Example
 
 ``` python
