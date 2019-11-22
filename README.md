@@ -34,7 +34,7 @@ print(TE)
 
 ## Arguments
 
-PyIF has 2 required arguments `X` and `Y` which should be numpy arrays with dimensions of N x 1. The following arguments optional:
+PyIF has 2 required arguments `X` and `Y` which should be numpy arrays with dimensions of N x 1. The following arguments are optional:
 
 - `k`: controls the number of neighbors used in KD-tree queries
 - `embedding`: controls how many lagged periods are used to estimate transfer entropy
