@@ -1,2 +1,2 @@
-name = "PyTE"
+name = "PyIF"
 from . import te_compute

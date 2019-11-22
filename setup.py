@@ -5,8 +5,8 @@ with open("README.md", "r") as fh:
 
 
 setuptools.setup(
-     name='PyTE',  
-     version='0.1',
+     name='PyIF',  
+     version='0.1.1',
      author="Kelechi Ikegwu, Jacob Trauger, Robert Brunner",
      author_email="ikegwu2@illinois.edu, jtt2@illinois.edu, bigdog@illinois.edu",
      description="An open source implementation to compute bi-variate Transfer Entropy.",
