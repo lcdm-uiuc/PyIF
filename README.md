@@ -42,6 +42,5 @@ PyIF has 2 required arguments `X` and `Y` which should be numpy arrays with dime
 -  `safetyCheck`: a boolean argument can be used to check for duplicates rows in your dataset.
 
 ## How to Cite PyIF
-```
+
 K. M. Ikegwu, J. Trauger, J. McMullin and R. J. Brunner, "PyIF: A Fast and Light Weight Implementation to Estimate Bivariate Transfer Entropy for Big Data," 2020 SoutheastCon, Raleigh, NC, USA, 2020, pp. 1-6, doi: 10.1109/SoutheastCon44009.2020.9249650.
-```
