@@ -4,7 +4,7 @@ from numba import njit,prange
 from scipy.special import digamma  # to compute log derivative of gamma function
 
 
-@njit(nopython=True, parallel=True)
+@njit(parallel=True)
 def countsInKD(fn_cntX_XKY_arr, fn_cntX_XK_arr, fn_xdistXKY, fn_xdistXK, xkyPts, embedding, X):
     """
     Computes counts for distances less than xdistXKY & xdistXK and stores them in cntX_XKY_arr and cntX_XK_arr respectively.
