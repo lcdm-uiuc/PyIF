@@ -5,8 +5,6 @@ from . import helper
 from . import GPU_TE as gte
 from . import CPU_TE as cte
 
-from nose.tools import assert_true
-
 def te_compute(X, Y, k=1, embedding=1, safetyCheck=False, GPU=False):
     '''
     Parameters
@@ -24,11 +22,22 @@ def te_compute(X, Y, k=1, embedding=1, safetyCheck=False, GPU=False):
     TE: Floating point value
     '''
 
-    assert_true(k>=1, msg="K should be greater than or equal to 1")
-    assert_true(embedding >= 1, msg='The embedding must be greater than or equal to 1')
-    assert_true(type(X) == np.ndarray, msg='X should be a numpy array')
-    assert_true(type(Y) == np.ndarray, msg='Y should be a numpy array')
-    assert_true(len(X) == len(Y), msg='The length of X & Y are not equal')
+    if k < 1:
+        raise AssertionError("K should be greater than or equal to 1")
+
+    if embedding < 1:
+        raise AssertionError(
+            "The embedding must be greater than or equal to 1"
+        )
+
+    if type(X) is not np.ndarray:
+        raise AssertionError("X should be a numpy array")
+
+    if type(Y) is not np.ndarray:
+        raise AssertionError("Y should be a numpy array")
+
+    if len(X) != len(Y):
+        raise AssertionError("The length of X & Y are not equal")
 
 
 
