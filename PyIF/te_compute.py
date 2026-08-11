@@ -53,7 +53,24 @@ def te_compute(X, Y, k=1, embedding=1, safetyCheck=False, GPU=False):
     if len(X) != len(Y):
         raise AssertionError("The length of X & Y are not equal")
 
+    if not np.all(np.isfinite(X)):
+        raise ValueError("X must contain only finite values")
 
+    if not np.all(np.isfinite(Y)):
+        raise ValueError("Y must contain only finite values")
+
+    if embedding >= len(X):
+        raise ValueError(
+            "embedding must be less than the length of the input arrays"
+        )
+
+    n_points = len(X) - embedding
+
+    if k >= n_points:
+        raise ValueError(
+            "k must be less than the number of usable samples "
+            "(len(X) - embedding)"
+        )
 
     if safetyCheck and (not helper.safetyCheck(X,Y)):
         print("Safety check failed. There are duplicates in the data.")
