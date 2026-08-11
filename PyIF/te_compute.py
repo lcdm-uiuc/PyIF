@@ -36,6 +36,20 @@ def te_compute(X, Y, k=1, embedding=1, safetyCheck=False, GPU=False):
     if type(Y) is not np.ndarray:
         raise AssertionError("Y should be a numpy array")
 
+    if X.ndim == 2 and X.shape[1] == 1:
+        X = X[:, 0]
+    elif X.ndim != 1:
+        raise ValueError(
+            "X must be one-dimensional or have shape (N, 1)"
+        )
+
+    if Y.ndim == 2 and Y.shape[1] == 1:
+        Y = Y[:, 0]
+    elif Y.ndim != 1:
+        raise ValueError(
+            "Y must be one-dimensional or have shape (N, 1)"
+        )
+
     if len(X) != len(Y):
         raise AssertionError("The length of X & Y are not equal")
 

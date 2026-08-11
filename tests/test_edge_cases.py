@@ -120,12 +120,8 @@ def test_make_spaces_embedding_two():
 
     assert n_points == 3
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="CPU implementation currently receives one-element arrays instead of scalars",
-)
 def test_column_vectors_run_without_safety_check():
-    """Document that N x 1 arrays already work when safetyCheck is off."""
+    """N x 1 arrays should run without the safety check."""
     rng = np.random.RandomState(seed=41)
     x = rng.randn(200, 1)
     y = rng.randn(200, 1)
@@ -142,11 +138,6 @@ def test_column_vectors_run_without_safety_check():
     assert np.isfinite(result)
 
 
-@pytest.mark.xfail(
-    raises=TypeError,
-    strict=True,
-    reason="safetyCheck cannot currently hash rows from N x 1 arrays",
-)
 def test_column_vectors_run_with_safety_check():
     """The documented N x 1 input shape should also support safetyCheck."""
     rng = np.random.RandomState(seed=42)
@@ -214,3 +205,66 @@ def test_embedding_two_executes_on_cpu():
     )
 
     assert np.isfinite(result)
+
+
+def test_column_vector_matches_one_dimensional_input():
+    """(N,) and (N, 1) representations should give the same result."""
+    rng = np.random.RandomState(seed=44)
+
+    x = rng.randn(500)
+    y = rng.randn(500)
+
+    result_1d = te.te_compute(
+        x,
+        y,
+        k=1,
+        embedding=1,
+        safetyCheck=True,
+        GPU=False,
+    )
+
+    result_column = te.te_compute(
+        x.reshape(-1, 1),
+        y.reshape(-1, 1),
+        k=1,
+        embedding=1,
+        safetyCheck=True,
+        GPU=False,
+    )
+
+    assert np.isclose(result_1d, result_column)
+
+
+def test_rejects_multi_column_x():
+    """PyIF should reject genuinely multi-column X input."""
+    x = np.zeros((20, 2))
+    y = np.zeros(20)
+
+    with pytest.raises(
+        ValueError,
+        match=r"X must be one-dimensional or have shape \(N, 1\)",
+    ):
+        te.te_compute(
+            x,
+            y,
+            safetyCheck=False,
+            GPU=False,
+        )
+
+
+def test_rejects_multi_column_y():
+    """PyIF should reject genuinely multi-column Y input."""
+    x = np.zeros(20)
+    y = np.zeros((20, 2))
+
+    with pytest.raises(
+        ValueError,
+        match=r"Y must be one-dimensional or have shape \(N, 1\)",
+    ):
+        te.te_compute(
+            x,
+            y,
+            safetyCheck=False,
+            GPU=False,
+        )
+        
