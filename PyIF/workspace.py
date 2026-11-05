@@ -1,6 +1,7 @@
 
 import numpy as np
 from sklearn.neighbors import KDTree
+from . import CPU_TE as cte
 
 from .preprocessing import (
     prepare_target,
@@ -98,3 +99,59 @@ class TEWorkspace:
         source = self.get_source(source_name, embedding)
 
         return combine_spaces(target, source)
+    
+    def estimate_ksg(
+        self,
+        source_name,
+        target_name,
+        *,
+        k=1,
+        embedding=1,
+    ):
+        """Calculate CPU KSG TE using cached target structures."""
+
+        self._check_embedding(embedding)
+
+        if type(k) is not int or k < 1:
+            raise ValueError("k must be a positive integer")
+
+        # Construct pair-specific spaces from cached histories.
+        xky, ky, xk, history, n_points = self.make_spaces(
+            source_name,
+            target_name,
+            embedding
+        )
+
+        if k >= n_points:
+            raise ValueError(
+                "k must be less than the number of embedded rows"
+            )
+
+        # These trees depend on the particular source-target pair.
+        xky_tree = KDTree(xky, metric="chebyshev")
+        ky_tree = KDTree(ky, metric="chebyshev")
+
+        # These trees depend only on the target and are reusable.
+        xk_tree, history_tree = self.get_target_trees(
+            target_name,
+            embedding
+        )
+
+        # Call the original CPU estimator without changing its math.
+        te = cte.compute(
+            xky_tree,
+            ky_tree,
+            xk_tree,
+            history_tree,
+            xky,
+            ky,
+            xk,
+            history,
+            n_points,
+            self._series[target_name],
+            embedding=embedding,
+            k=k
+        )
+
+        return float(te)
+

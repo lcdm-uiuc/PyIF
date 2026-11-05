@@ -4,6 +4,8 @@ import pytest
 
 from PyIF import helper
 from PyIF.workspace import TEWorkspace
+from PyIF import te_compute
+import PyIF.workspace as workspace_module
 
 
 def test_workspace_spaces_match_legacy():
@@ -75,3 +77,78 @@ def test_rejects_misaligned_lengths():
             "A": np.arange(20),
             "B": np.arange(19),
         })
+
+
+@pytest.mark.parametrize(
+    "embedding,k",
+    [(1, 1), (2, 2), (3, 1)]
+)
+def test_workspace_te_matches_legacy(embedding, k):
+    rng = np.random.default_rng(12345)
+
+    target = rng.normal(size=200)
+    source_a = rng.normal(size=200)
+    source_b = rng.normal(size=200)
+
+    workspace = TEWorkspace({
+        "target": target,
+        "A": source_a,
+        "B": source_b,
+    })
+
+    for name, source in [
+        ("A", source_a),
+        ("B", source_b)
+    ]:
+        original = te_compute.te_compute(
+            X=target,
+            Y=source,
+            k=k,
+            embedding=embedding,
+            safetyCheck=False,
+            GPU=False
+        )
+
+        cached = workspace.estimate_ksg(
+            source_name=name,
+            target_name="target",
+            k=k,
+            embedding=embedding
+        )
+
+        np.testing.assert_allclose(
+            cached,
+            original,
+            rtol=0,
+            atol=1e-12
+        )
+
+
+def test_workspace_reduces_tree_construction(monkeypatch):
+    rng = np.random.default_rng(789)
+
+    workspace = TEWorkspace({
+        "target": rng.normal(size=100),
+        "A": rng.normal(size=100),
+        "B": rng.normal(size=100),
+    })
+
+    original_kdtree = workspace_module.KDTree
+    tree_count = {"value": 0}
+
+    def counting_kdtree(*args, **kwargs):
+        tree_count["value"] += 1
+        return original_kdtree(*args, **kwargs)
+
+    monkeypatch.setattr(
+        workspace_module,
+        "KDTree",
+        counting_kdtree
+    )
+
+    workspace.estimate_ksg("A", "target", embedding=1)
+    workspace.estimate_ksg("B", "target", embedding=1)
+
+    # First pair builds 4 trees.
+    # Second pair builds only 2 new trees.
+    assert tree_count["value"] == 6
