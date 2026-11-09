@@ -9,6 +9,7 @@ import numpy as np
 from . import te_compute as legacy
 from .config import KSGConfig
 from .result import TEResult
+from .provenance import get_git_provenance
 
 
 def _data_hash(array):
@@ -85,7 +86,10 @@ def estimate_te(
         "config": asdict(config),
         "inference_method": "none",
         "n_surrogates": 0,
+        "random_seed": None,
     }
+
+    code_revision, working_tree_dirty = get_git_provenance()
 
     return TEResult(
         raw_te=float(raw_te),
@@ -98,4 +102,7 @@ def estimate_te(
             "source": _data_hash(source),
             "target": _data_hash(target),
         },
+        code_revision=code_revision,
+        working_tree_dirty=working_tree_dirty,
+        random_seed=None,
     )

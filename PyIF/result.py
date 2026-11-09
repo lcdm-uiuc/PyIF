@@ -12,6 +12,7 @@ class InferenceResult:
     p_value: float | None = None
 
 
+
 @dataclass(frozen=True)
 class TEResult:
     raw_te: float
@@ -21,4 +22,11 @@ class TEResult:
     resolved_settings: dict
     software_version: str
     data_hashes: dict
-    inference: InferenceResult = field(default_factory=InferenceResult)
+
+    code_revision: str | None = None
+    working_tree_dirty: bool | None = None
+    random_seed: int | None = None
+
+    inference: InferenceResult = field(
+        default_factory=InferenceResult
+    )

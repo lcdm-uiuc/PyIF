@@ -4,6 +4,7 @@ import pytest
 
 from PyIF import estimate_te, te_compute
 from PyIF.config import KSGConfig
+from importlib.metadata import version
 
 
 def test_new_api_matches_legacy():
@@ -110,3 +111,29 @@ def test_nondefault_ksg_settings_match_legacy():
 
     # Verify the reported history matrix size
     assert result.n_history_rows == 198
+
+
+def test_result_reproducibility_metadata():
+    rng = np.random.default_rng(12345)
+
+    source = rng.normal(size=100)
+    target = rng.normal(size=100)
+
+    result = estimate_te(source, target)
+
+    assert result.software_version == "0.2.0.dev0"
+    assert result.software_version == version("PyIF")
+
+    assert result.random_seed is None
+    assert result.resolved_settings["random_seed"] is None
+
+    # In a Git checkout, record a 40-character commit hash.
+    if result.code_revision is not None:
+        assert len(result.code_revision) == 40
+        assert all(c in "0123456789abcdef"
+                   for c in result.code_revision)
+
+    # The dirty flag is either known or unavailable.
+    assert result.working_tree_dirty is None or isinstance(
+        result.working_tree_dirty, bool
+    )
