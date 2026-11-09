@@ -137,3 +137,23 @@ def test_result_reproducibility_metadata():
     assert result.working_tree_dirty is None or isinstance(
         result.working_tree_dirty, bool
     )
+
+
+@pytest.mark.parametrize(
+    "value",
+    [1, 2, np.int32(2), np.int64(2), np.uint64(2)]
+)
+def test_accepts_integer_types(value):
+    config = KSGConfig(k_neighbors=value)
+
+    assert config.k_neighbors == int(value)
+    assert type(config.k_neighbors) is int
+
+
+@pytest.mark.parametrize(
+    "value",
+    [True, False, 0, -1, 1.5, "2", None]
+)
+def test_rejects_invalid_k(value):
+    with pytest.raises(ValueError):
+        KSGConfig(k_neighbors=value)
