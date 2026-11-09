@@ -10,6 +10,7 @@ from . import te_compute as legacy
 from .config import KSGConfig
 from .result import TEResult
 from .provenance import get_git_provenance
+from .preprocessing import count_tied_observations
 
 
 def _data_hash(array):
@@ -105,4 +106,8 @@ def estimate_te(
         code_revision=code_revision,
         working_tree_dirty=working_tree_dirty,
         random_seed=None,
+        tie_counts={
+            "source": count_tied_observations(source),
+            "target": count_tied_observations(target),
+        },
     )

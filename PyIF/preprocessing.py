@@ -71,3 +71,18 @@ def combine_spaces(target, source):
     ky = np.column_stack((target.k, source.lag))
 
     return xky, ky, target.xk, target.k, len(target.xk)
+
+
+def count_tied_observations(values):
+    """Count observations belonging to repeated-value groups."""
+    arr = np.asarray(values)
+
+    if arr.ndim == 2 and arr.shape[1] == 1:
+        arr = arr[:, 0]
+
+    if arr.ndim != 1:
+        raise ValueError("Expected a one-dimensional series")
+
+    _, counts = np.unique(arr, return_counts=True)
+
+    return int(np.sum(counts[counts > 1]))

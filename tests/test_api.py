@@ -157,3 +157,31 @@ def test_accepts_integer_types(value):
 def test_rejects_invalid_k(value):
     with pytest.raises(ValueError):
         KSGConfig(k_neighbors=value)
+
+
+def test_result_reports_ties_with_safety_check_disabled():
+    rng = np.random.default_rng(2026)
+
+    source = rng.normal(size=200)
+    target = rng.normal(size=200)
+
+    # Three source observations belong to one tied group.
+    source[1] = source[0]
+    source[2] = source[0]
+
+    # Two target observations belong to one tied group.
+    target[1] = target[0]
+
+    result = estimate_te(
+        source=source,
+        target=target,
+        config=KSGConfig(
+            k_neighbors=2,
+            safety_check=False,
+        ),
+    )
+
+    assert result.tie_counts == {
+        "source": 3,
+        "target": 2,
+    }

@@ -30,3 +30,5 @@ class TEResult:
     inference: InferenceResult = field(
         default_factory=InferenceResult
     )
+
+    tie_counts: dict[str, int] = field(default_factory=dict)

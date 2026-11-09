@@ -8,6 +8,8 @@ from PyIF.preprocessing import (
     prepare_source,
     combine_spaces,
 )
+from PyIF.preprocessing import count_tied_observations
+
 
 
 @pytest.mark.parametrize("embedding", [1, 2, 3, 5])
@@ -56,3 +58,17 @@ def test_prepared_target_reusable_across_sources():
 
     assert spaces_a[2] is prepared_target.xk
     assert spaces_b[2] is prepared_target.xk
+
+
+def test_count_tied_observations():
+    assert count_tied_observations(
+        np.array([1, 1, 2, 3, 3, 3, 4])
+    ) == 5
+
+    assert count_tied_observations(
+        np.array([1, 2, 3, 4])
+    ) == 0
+
+    assert count_tied_observations(
+        np.array([[1], [1], [2], [3]])
+    ) == 2
