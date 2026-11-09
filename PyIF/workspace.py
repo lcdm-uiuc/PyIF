@@ -47,6 +47,7 @@ class TEWorkspace:
         self._targets = {}
         self._sources = {}
         self._target_trees = {}
+        self._sorted_targets = {}
 
     def _check_embedding(self, embedding):
         if type(embedding) is not int or not 1 <= embedding < self._length:
@@ -92,6 +93,21 @@ class TEWorkspace:
             self._target_trees[key] = (xk_tree, k_tree)
 
         return self._target_trees[key]
+    
+
+    def get_sorted_target(self, name, embedding=1):
+        """Return target observations sorted once per configuration."""
+        self._check_embedding(embedding)
+        key = (name, embedding)
+
+        if key not in self._sorted_targets:
+            # Matches the legacy loop: j = embedding ... len(X)-1.
+            values = np.sort(self._series[name][embedding:])
+            values.setflags(write=False)
+            self._sorted_targets[key] = values
+
+        return self._sorted_targets[key]
+
 
     def make_spaces(self, source_name, target_name, embedding=1):
         """Construct the four legacy KSG spaces from cached histories."""
@@ -150,8 +166,8 @@ class TEWorkspace:
             n_points,
             self._series[target_name],
             embedding=embedding,
-            k=k
+            k=k,
+            sorted_target=self.get_sorted_target(target_name, embedding),
         )
 
         return float(te)
-
