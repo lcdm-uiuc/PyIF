@@ -152,3 +152,44 @@ def test_workspace_reduces_tree_construction(monkeypatch):
     # First pair builds 4 trees.
     # Second pair builds only 2 new trees.
     assert tree_count["value"] == 6
+
+
+@pytest.mark.parametrize("embedding,k", [(1, 1), (2, 2)])
+def test_full_directed_pair_matrix(embedding, k):
+    rng = np.random.default_rng(2026)
+
+    series = {
+        name: rng.normal(size=200)
+        for name in ("A", "B", "C", "D")
+    }
+
+    workspace = TEWorkspace(series)
+
+    for target_name, target in series.items():
+        for source_name, source in series.items():
+            if source_name == target_name:
+                continue
+
+            original = te_compute.te_compute(
+                X=target,
+                Y=source,
+                k=k,
+                embedding=embedding,
+                GPU=False,
+                safetyCheck=False,
+            )
+
+            cached = workspace.estimate_ksg(
+                source_name,
+                target_name,
+                k=k,
+                embedding=embedding,
+            )
+
+            np.testing.assert_allclose(
+                cached, original,
+                rtol=0, atol=1e-12
+            )
+
+    # Each target has its own cached search trees.
+    assert len(workspace._target_trees) == len(series)
