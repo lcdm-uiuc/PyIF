@@ -6,6 +6,7 @@ from PyIF import CPU_TE
 from PyIF.counting import counts_sorted
 from PyIF.workspace import TEWorkspace
 from PyIF import te_compute
+from PyIF import helper
 
 
 @pytest.mark.parametrize("embedding", [1, 2, 3])
@@ -106,3 +107,94 @@ def test_sorted_target_is_reused():
 
     assert first is second
     assert not first.flags.writeable
+
+
+@pytest.mark.parametrize(
+    "kind",
+    ["normal", "ties", "constant", "adjacent", "large", "small"]
+)
+@pytest.mark.parametrize("embedding", [1, 2, 4, 8])
+def test_sorted_counts_randomized_stress(kind, embedding):
+    """Compare optimized counts with legacy counts on difficult inputs."""
+
+    for seed in range(20):
+        rng = np.random.default_rng(seed)
+        n = 80 + seed * 3
+
+        if kind == "normal":
+            target = rng.normal(size=n)
+
+        elif kind == "ties":
+            target = rng.integers(-3, 4, size=n).astype(float)
+
+        elif kind == "constant":
+            target = np.ones(n)
+
+        elif kind == "adjacent":
+            target = rng.choice([
+                np.nextafter(1.0, -np.inf),
+                1.0,
+                np.nextafter(1.0, np.inf),
+            ], size=n)
+
+        elif kind == "large":
+            target = rng.normal(size=n) * 1e150
+
+        else:
+            target = rng.normal(size=n) * 1e-150
+
+        source = rng.normal(size=n)
+
+        xky, ky, xk, history, n_points = (
+            helper.make_spaces(
+                target, source, embedding=embedding
+            )
+        )
+
+        n_counted = len(xky) - embedding
+
+        radius_a = np.zeros(n_points)
+        radius_b = np.zeros(n_points)
+
+        for i in range(n_counted):
+            point = xky[i, 0]
+            neighbor = target[rng.integers(embedding, n)]
+
+            distance = abs(point - neighbor)
+
+            options = [
+                distance,
+                np.nextafter(distance, np.inf),
+                np.nextafter(distance, 0.0),
+                0.0,
+            ]
+
+            radius_a[i] = options[i % 4]
+            radius_b[i] = options[(i + seed + 1) % 4]
+
+        legacy_a = np.zeros(n_counted)
+        legacy_b = np.zeros(n_counted)
+
+        optimized_a = np.zeros(n_counted)
+        optimized_b = np.zeros(n_counted)
+
+        CPU_TE.countsInKD(
+            legacy_a, legacy_b,
+            radius_a, radius_b,
+            xky, embedding, target
+        )
+
+        counts_sorted(
+            optimized_a, optimized_b,
+            radius_a, radius_b,
+            xky,
+            np.sort(target[embedding:])
+        )
+
+        np.testing.assert_array_equal(
+            optimized_a, legacy_a
+        )
+
+        np.testing.assert_array_equal(
+            optimized_b, legacy_b
+        )
