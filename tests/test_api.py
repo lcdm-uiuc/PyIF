@@ -1,6 +1,7 @@
 
 import numpy as np
 import pytest
+from scipy.linalg import solve_discrete_lyapunov
 
 from PyIF import estimate_te, te_compute
 from PyIF.config import KSGConfig
@@ -185,3 +186,80 @@ def test_result_reports_ties_with_safety_check_disabled():
         "source": 3,
         "target": 2,
     }
+
+
+
+def _generate_one_way_ar(n, coupling_x, coupling_y, seed=0):
+    """One-way Gaussian AR(1) model from Matthew's validation framework."""
+    rng = np.random.default_rng(seed)
+
+    a = b = 0.5
+    transition = np.array([
+        [a, coupling_x],
+        [coupling_y, b],
+    ])
+
+    # Match the stationary initialization in AR_system.py.
+    covariance = solve_discrete_lyapunov(
+        transition, np.eye(2)
+    )
+
+    x = np.zeros(n)
+    y = np.zeros(n)
+
+    x[0], y[0] = rng.multivariate_normal(
+        [0, 0], covariance
+    )
+
+    for t in range(1, n):
+        eps_x = rng.normal()
+        eps_y = rng.normal()
+
+        x[t] = (
+            a * x[t - 1]
+            + coupling_x * y[t - 1]
+            + eps_x
+        )
+        y[t] = (
+            b * y[t - 1]
+            + coupling_y * x[t - 1]
+            + eps_y
+        )
+
+    return x, y
+
+
+@pytest.mark.parametrize(
+    "coupling_x,coupling_y",
+    [
+        (0.0, 0.45),  # X drives Y
+        (0.45, 0.0),  # Y drives X
+    ],
+)
+def test_directional_ar_coupling(coupling_x, coupling_y):
+    """TE should be greater in the known coupling direction."""
+    x, y = _generate_one_way_ar(
+        n=2500,
+        coupling_x=coupling_x,
+        coupling_y=coupling_y,
+        seed=0,
+    )
+
+    config = KSGConfig(k_neighbors=2)
+
+    te_xy = estimate_te(
+        source=x,
+        target=y,
+        config=config,
+    ).raw_te
+
+    te_yx = estimate_te(
+        source=y,
+        target=x,
+        config=config,
+    ).raw_te
+
+    if coupling_y > 0:
+        assert te_xy > te_yx
+    else:
+        assert te_yx > te_xy
