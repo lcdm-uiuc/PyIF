@@ -22,25 +22,30 @@ def _run_git(root, *args):
     return result.stdout.strip()
 
 
+
 def get_git_provenance():
-    """Return (commit hash, working-tree dirty status)."""
+    """Return source commit and working-tree/build dirty status."""
     root = Path(__file__).resolve().parent.parent
 
-    # Ensure this package belongs to the detected repository.
     git_root = _run_git(root, "rev-parse", "--show-toplevel")
 
-    if git_root is None or Path(git_root).resolve() != root:
+    if git_root is not None and Path(git_root).resolve() == root:
+        revision = _run_git(root, "rev-parse", "HEAD")
+        status = _run_git(
+            root,
+            "status",
+            "--porcelain",
+            "--untracked-files=normal",
+        )
+
+        dirty = None if status is None else bool(status)
+        return revision, dirty
+
+    # Fall back to provenance embedded during packaging.
+    try:
+        from ._build_info import SOURCE_COMMIT, SOURCE_DIRTY
+    except ImportError:
         return None, None
 
-    revision = _run_git(root, "rev-parse", "HEAD")
+    return SOURCE_COMMIT, SOURCE_DIRTY
 
-    status = _run_git(
-        root,
-        "status",
-        "--porcelain",
-        "--untracked-files=normal",
-    )
-
-    dirty = None if status is None else bool(status)
-
-    return revision, dirty
