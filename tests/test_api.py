@@ -6,6 +6,8 @@ from scipy.linalg import solve_discrete_lyapunov
 from PyIF import estimate_te, te_compute
 from PyIF.config import KSGConfig
 from importlib.metadata import version
+from dataclasses import dataclass
+from PyIF.estimators import ESTIMATORS, EstimatorSpec
 
 
 def test_new_api_matches_legacy():
@@ -263,3 +265,51 @@ def test_directional_ar_coupling(coupling_x, coupling_y):
         assert te_xy > te_yx
     else:
         assert te_yx > te_xy
+
+
+def test_second_estimator_uses_shared_interface(monkeypatch):
+    """A second estimator works without modifying estimate_te."""
+
+    @dataclass(frozen=True)
+    class ExampleConfig:
+        multiplier: float = 2.0
+
+    source = np.arange(20, dtype=float)
+    target = np.arange(20, dtype=float) * 0.5
+
+    def example_estimator(context, config):
+        future, target_past, source_past = context.histories()
+
+        assert future.shape == (17,)
+        assert target_past.shape == (17, 2)
+        assert source_past.shape == (17, 2)
+
+        np.testing.assert_array_equal(
+            source_past[0], [source[1], source[0]]
+        )
+
+        return config.multiplier * 0.125
+
+    monkeypatch.setitem(
+        ESTIMATORS,
+        "example",
+        EstimatorSpec(
+            config_type=ExampleConfig,
+            compute=example_estimator,
+        ),
+    )
+
+    result = estimate_te(
+        source=source,
+        target=target,
+        estimator="example",
+        target_history=2,
+        source_history=2,
+        delay=2,
+        config=ExampleConfig(),
+    )
+
+    assert result.raw_te == 0.25
+    assert result.n_history_rows == 17
+    assert result.resolved_settings["estimator"] == "example"
+    assert result.resolved_settings["config"]["multiplier"] == 2.0

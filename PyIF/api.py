@@ -6,8 +6,7 @@ from numbers import Integral
 
 import numpy as np
 
-from . import te_compute as legacy
-from .config import KSGConfig
+from .estimators import ESTIMATORS, TEContext
 from .result import TEResult
 from .provenance import get_git_provenance
 from .preprocessing import count_tied_observations
@@ -32,8 +31,10 @@ def estimate_te(
     config=None,
 ):
     """Estimate transfer entropy from source to target."""
+    
+    spec = ESTIMATORS.get(estimator)
 
-    if estimator != "ksg":
+    if spec is None:
         raise NotImplementedError(
             f"Estimator '{estimator}' is not implemented yet"
         )
@@ -43,14 +44,12 @@ def estimate_te(
         ("source_history", source_history),
         ("delay", delay),
     ):
-        if isinstance(value, bool) or not isinstance(value, Integral) or value < 1:
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, Integral)
+            or value < 1
+        ):
             raise ValueError(f"{name} must be a positive integer")
-
-    if source_history != 1 or delay != 1:
-        raise NotImplementedError(
-            "The legacy KSG estimator supports only "
-            "source_history=1 and delay=1"
-        )
 
     if conditioning is not None:
         raise NotImplementedError(
@@ -58,25 +57,28 @@ def estimate_te(
         )
 
     if config is None:
-        config = KSGConfig()
+        config = spec.config_type()
 
-    if not isinstance(config, KSGConfig):
-        raise TypeError("KSG estimation requires a KSGConfig")
+    if not isinstance(config, spec.config_type):
+        raise TypeError(
+            f"{estimator} estimation requires "
+            f"{spec.config_type.__name__}"
+        )
 
-    if not isinstance(source, np.ndarray) or not isinstance(target, np.ndarray):
+    if not isinstance(source, np.ndarray) or not isinstance(
+        target, np.ndarray
+    ):
         raise TypeError("source and target must be NumPy arrays")
 
-    raw_te = legacy.te_compute(
-        X=target,
-        Y=source,
-        k=config.k_neighbors,
-        embedding=target_history,
-        safetyCheck=config.safety_check,
-        GPU=(config.backend == "gpu"),
+    context = TEContext(
+        source=source,
+        target=target,
+        target_history=int(target_history),
+        source_history=int(source_history),
+        delay=int(delay),
     )
 
-    if raw_te is None:
-        raise ValueError("The legacy estimator did not return an estimate")
+    raw_te = spec.compute(context, config)
 
     settings = {
         "estimator": estimator,
@@ -96,7 +98,7 @@ def estimate_te(
         raw_te=float(raw_te),
         units="nats",
         n_input=len(target),
-        n_history_rows=len(target) - target_history,
+        n_history_rows=len(target) - context.first_row,
         resolved_settings=settings,
         software_version=version("PyIF"),
         data_hashes={
