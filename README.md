@@ -17,6 +17,8 @@ To install this development branch, run the following command from the repositor
 pip install -e .
 ```
 
+PyIF 0.2.0.dev0 requires Python 3.10 or newer. The refactor has been tested on Python 3.12; additional versions are checked through GitHub Actions.
+
 ## Legacy example
 
 ``` python
@@ -75,9 +77,34 @@ KSG is currently the only implemented production estimator. It retains its exist
 
 Conditional TE, surrogate inference, and additional estimator implementations remain planned features.
 
-`tested-commit.txt` records the original upstream baseline used
-for comparison, not the current refactor revision. The refactored
-package records its own source Git provenance.
+`docs/historical/tested-commit.txt` records the original upstream baseline used for comparison, not the current refactor revision. The refactored package records its own source Git provenance.
+
+## Cached KSG workspace
+
+For repeated calculations across multiple series, `TEWorkspace` reuses target histories, KD-trees, and sorted target values.
+
+```python
+from PyIF.workspace import TEWorkspace
+
+workspace = TEWorkspace({
+    "source": source,
+    "target": target,
+})
+
+te_value = workspace.estimate_ksg(
+    "source", "target", k=2, embedding=1
+)
+```
+
+`TEWorkspace` accepts one-dimensional, finite, equal-length series. `estimate_ksg()` currently uses the optimized CPU KSG implementation and returns a single `float` in nats, not a `TEResult`. It does not include the version, commit, input hashes, or tie counts returned by the public `estimate_te()` interface. Users of the workspace path must record that metadata separately.
+
+The public `estimate_te()` interface currently uses the legacy KSG computational path. Integrating the optimized path while retaining structured results is planned for a follow-up change.
+
+**Exact ties:** KSG estimates may be unreliable when input values repeat, because the current neighbor-counting rules do not consistently handle zero distances. Reported tie counts are diagnostic information, not a correction for this issue.
+
+## Development installation
+
+When running PyIF from a source checkout, install the package first using `python -m pip install -e .`. The public API currently retrieves its software version from installed package metadata.
 
 ## How to Cite PyIF
 

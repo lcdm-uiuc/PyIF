@@ -193,3 +193,46 @@ def test_full_directed_pair_matrix(embedding, k):
 
     # Each target has its own cached search trees.
     assert len(workspace._target_trees) == len(series)
+
+
+
+def test_workspace_accepts_numpy_integers():
+    rng = np.random.default_rng(123)
+    workspace = TEWorkspace({
+        "source": rng.normal(size=200),
+        "target": rng.normal(size=200),
+    })
+
+    original = workspace.estimate_ksg(
+        "source", "target", k=2, embedding=2
+    )
+
+    numpy_integer = workspace.estimate_ksg(
+        "source", "target",
+        k=np.int64(2),
+        embedding=np.int32(2),
+    )
+
+    assert original == numpy_integer
+
+    assert workspace.get_target(
+        "target", np.int64(2)
+    ) is workspace.get_target("target", 2)
+
+
+def test_workspace_rejects_boolean_settings():
+    rng = np.random.default_rng(456)
+    workspace = TEWorkspace({
+        "source": rng.normal(size=100),
+        "target": rng.normal(size=100),
+    })
+
+    with pytest.raises(ValueError):
+        workspace.estimate_ksg(
+            "source", "target", k=True
+        )
+
+    with pytest.raises(ValueError):
+        workspace.estimate_ksg(
+            "source", "target", embedding=True
+        )

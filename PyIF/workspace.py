@@ -2,6 +2,7 @@
 import numpy as np
 from sklearn.neighbors import KDTree
 from . import CPU_TE as cte
+from numbers import Integral
 
 from .preprocessing import (
     prepare_target,
@@ -49,13 +50,21 @@ class TEWorkspace:
         self._target_trees = {}
         self._sorted_targets = {}
 
+    
     def _check_embedding(self, embedding):
-        if type(embedding) is not int or not 1 <= embedding < self._length:
+        if (
+            isinstance(embedding, bool)
+            or not isinstance(embedding, Integral)
+            or not 1 <= embedding < self._length
+        ):
             raise ValueError("Invalid embedding")
+
+        return int(embedding)
+
 
     def get_target(self, name, embedding=1):
         """Return cached target histories."""
-        self._check_embedding(embedding)
+        embedding = self._check_embedding(embedding)
         key = (name, embedding)
 
         if key not in self._targets:
@@ -70,7 +79,7 @@ class TEWorkspace:
 
     def get_source(self, name, embedding=1):
         """Return cached aligned source observations."""
-        self._check_embedding(embedding)
+        embedding = self._check_embedding(embedding)
         key = (name, embedding)
 
         if key not in self._sources:
@@ -97,7 +106,7 @@ class TEWorkspace:
 
     def get_sorted_target(self, name, embedding=1):
         """Return target observations sorted once per configuration."""
-        self._check_embedding(embedding)
+        embedding = self._check_embedding(embedding)
         key = (name, embedding)
 
         if key not in self._sorted_targets:
@@ -126,10 +135,12 @@ class TEWorkspace:
     ):
         """Calculate CPU KSG TE using cached target structures."""
 
-        self._check_embedding(embedding)
+        embedding = self._check_embedding(embedding)
 
-        if type(k) is not int or k < 1:
+        if isinstance(k, bool) or not isinstance(k, Integral) or k < 1:
             raise ValueError("k must be a positive integer")
+
+        k = int(k)
 
         # Construct pair-specific spaces from cached histories.
         xky, ky, xk, history, n_points = self.make_spaces(
