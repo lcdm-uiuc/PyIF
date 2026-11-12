@@ -104,7 +104,7 @@ setuptools.setup(
      description="An open source implementation to compute bi-variate Transfer Entropy.",
      long_description=long_description,
    long_description_content_type="text/markdown",
-     url="https://github.com/lcdm-uiuc/PyTE",
+     url="https://github.com/lcdm-uiuc/PyIF",
      packages=setuptools.find_packages(),
      install_requires=[
         "numpy",
