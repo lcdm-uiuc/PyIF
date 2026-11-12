@@ -41,6 +41,16 @@ PyIF has 2 required arguments `X` and `Y` which should be numpy arrays with dime
 - `GPU`: a boolean argument that indicates if CUDA compatible GPUs should be used to estimate transfer entropy instead of your computer's CPUs.
 -  `safetyCheck`: a boolean argument can be used to check for duplicates rows in your dataset.
 
+## Estimator architecture
+
+PyIF uses a shared `estimate_te()` interface with estimator-specific configuration classes. The `PyIF.estimators` registry maps estimator names to their configuration types and calculation functions.
+
+Each estimator receives a `TEContext` containing the source, target, and requested history settings. The context can construct aligned future observations, target histories, and source histories using `context.histories()`. An estimator returns a transfer entropy estimate in nats, which the public interface wraps in `TEResult` with resolved settings, input hashes, tie counts, and software provenance.
+
+KSG is currently the only implemented production estimator. It retains its existing computational path. Additional estimators can use the shared histories while implementing their own numerical methods and tie handling.
+
+Conditional TE, surrogate inference, and additional estimator implementations remain planned features.
+
 ## How to Cite PyIF
 
 K. M. Ikegwu, J. Trauger, J. McMullin and R. J. Brunner, "PyIF: A Fast and Light Weight Implementation to Estimate Bivariate Transfer Entropy for Big Data," 2020 SoutheastCon, Raleigh, NC, USA, 2020, pp. 1-6, doi: 10.1109/SoutheastCon44009.2020.9249650.
