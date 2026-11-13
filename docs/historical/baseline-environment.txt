@@ -1,0 +1,18 @@
+Python 3.9.18
+exceptiongroup==1.3.1
+iniconfig==2.1.0
+joblib==1.5.3
+llvmlite==0.43.0
+nose==1.3.7
+numba==0.60.0
+numpy==2.0.2
+packaging==26.2
+pluggy==1.6.0
+Pygments==2.20.0
+-e git+https://github.com/lcdm-uiuc/PyIF.git@0466028754b19f066aaa5836a4ccaf0ce49aeb87#egg=PyIF
+pytest==8.4.2
+scikit-learn==1.6.1
+scipy==1.13.1
+threadpoolctl==3.6.0
+tomli==2.4.1
+typing_extensions==4.16.0

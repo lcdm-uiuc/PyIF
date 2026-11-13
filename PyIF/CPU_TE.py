@@ -2,9 +2,9 @@
 import numpy as np
 from numba import njit,prange
 from scipy.special import digamma  # to compute log derivative of gamma function
+from .counting import counts_sorted
 
-
-@njit(nopython=True, parallel=True)
+@njit(parallel=True)
 def countsInKD(fn_cntX_XKY_arr, fn_cntX_XK_arr, fn_xdistXKY, fn_xdistXK, xkyPts, embedding, X):
     """
     Computes counts for distances less than xdistXKY & xdistXK and stores them in cntX_XKY_arr and cntX_XK_arr respectively.
@@ -43,7 +43,8 @@ def countsInKD(fn_cntX_XKY_arr, fn_cntX_XK_arr, fn_xdistXKY, fn_xdistXK, xkyPts,
             fn_cntX_XK_arr[i] = 1
 
 def compute(xkykdTree, kykdTree, xkkdTree, kkdTree,
-xkyPts, kyPts, xkPts, kPts, nPts, X, embedding=1, k=1):
+xkyPts, kyPts, xkPts, kPts, nPts, X,
+embedding=1, k=1, *, sorted_target=None):
     '''
     Computes the TE
 
@@ -108,7 +109,18 @@ xkyPts, kyPts, xkPts, kPts, nPts, X, embedding=1, k=1):
     cntX_XKY_arr = np.zeros(len(xkyPts) - embedding, dtype="float")
     cntX_XK_arr = np.zeros(len(xkyPts) - embedding, dtype="float")
 
-    countsInKD(cntX_XKY_arr, cntX_XK_arr, xdistXKY, xdistXK, xkyPts, embedding, X)
+    if sorted_target is None:
+        countsInKD(
+            cntX_XKY_arr, cntX_XK_arr,
+            xdistXKY, xdistXK,
+            xkyPts, embedding, X
+        )
+    else:
+        counts_sorted(
+            cntX_XKY_arr, cntX_XK_arr,
+            xdistXKY, xdistXK,
+            xkyPts, sorted_target
+        )
     vfunc = np.vectorize(digamma)
     cntX_XKY_arr = vfunc(cntX_XKY_arr)
     cntX_XK_arr = vfunc(cntX_XK_arr)

@@ -1,0 +1,5 @@
+# Python-generated files
+__pycache__/
+*.py[cod]
+PyIF.egg-info/
+/build/

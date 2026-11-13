@@ -5,8 +5,6 @@ from . import helper
 from . import GPU_TE as gte
 from . import CPU_TE as cte
 
-from nose.tools import assert_true
-
 def te_compute(X, Y, k=1, embedding=1, safetyCheck=False, GPU=False):
     '''
     Parameters
@@ -24,13 +22,55 @@ def te_compute(X, Y, k=1, embedding=1, safetyCheck=False, GPU=False):
     TE: Floating point value
     '''
 
-    assert_true(k>=1, msg="K should be greater than or equal to 1")
-    assert_true(embedding >= 1, msg='The embedding must be greater than or equal to 1')
-    assert_true(type(X) == np.ndarray, msg='X should be a numpy array')
-    assert_true(type(Y) == np.ndarray, msg='Y should be a numpy array')
-    assert_true(len(X) == len(Y), msg='The length of X & Y are not equal')
+    if k < 1:
+        raise AssertionError("K should be greater than or equal to 1")
 
+    if embedding < 1:
+        raise AssertionError(
+            "The embedding must be greater than or equal to 1"
+        )
 
+    if type(X) is not np.ndarray:
+        raise AssertionError("X should be a numpy array")
+
+    if type(Y) is not np.ndarray:
+        raise AssertionError("Y should be a numpy array")
+
+    if X.ndim == 2 and X.shape[1] == 1:
+        X = X[:, 0]
+    elif X.ndim != 1:
+        raise ValueError(
+            "X must be one-dimensional or have shape (N, 1)"
+        )
+
+    if Y.ndim == 2 and Y.shape[1] == 1:
+        Y = Y[:, 0]
+    elif Y.ndim != 1:
+        raise ValueError(
+            "Y must be one-dimensional or have shape (N, 1)"
+        )
+
+    if len(X) != len(Y):
+        raise AssertionError("The length of X & Y are not equal")
+
+    if not np.all(np.isfinite(X)):
+        raise ValueError("X must contain only finite values")
+
+    if not np.all(np.isfinite(Y)):
+        raise ValueError("Y must contain only finite values")
+
+    if embedding >= len(X):
+        raise ValueError(
+            "embedding must be less than the length of the input arrays"
+        )
+
+    n_points = len(X) - embedding
+
+    if k >= n_points:
+        raise ValueError(
+            "k must be less than the number of usable samples "
+            "(len(X) - embedding)"
+        )
 
     if safetyCheck and (not helper.safetyCheck(X,Y)):
         print("Safety check failed. There are duplicates in the data.")
