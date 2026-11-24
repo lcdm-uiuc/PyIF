@@ -26,3 +26,24 @@ class KSGConfig:
 
         if type(self.safety_check) is not bool:
             raise TypeError("safety_check must be a boolean")
+
+
+@dataclass(frozen=True)
+class MSConfig:
+    k_neighbors: int = 16
+    standardize: bool = True
+
+    def __post_init__(self):
+        if (
+            not isinstance(self.k_neighbors, Integral)
+            or isinstance(self.k_neighbors, bool)
+            or self.k_neighbors < 1
+        ):
+            raise ValueError("k_neighbors must be a positive integer")
+
+        object.__setattr__(
+            self, "k_neighbors", int(self.k_neighbors)
+        )
+
+        if type(self.standardize) is not bool:
+            raise TypeError("standardize must be a boolean")
