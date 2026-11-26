@@ -160,7 +160,7 @@ Additional limitations of the legacy implementation are documented in [Known est
 
 ## Development installation
 
-When running PyIF from a source checkout, install the package first using `python -m pip install -e .`. The public API currently retrieves its software version from installed package metadata. 
+When running PyIF from a source checkout, install the package first using `python -m pip install -e .`. The public API currently retrieves its software version from installed package metadata.
 
 ## How to Cite PyIF
 
