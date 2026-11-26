@@ -107,7 +107,11 @@ setuptools.setup(
    long_description_content_type="text/markdown",
      url="https://github.com/lcdm-uiuc/PyIF",
      packages=setuptools.find_packages(),
-     install_requires=[
+    package_data={
+        "PyIF.ms": ["License.md"],
+    },
+    license_files=["License.md"],
+    install_requires=[
         "numpy",
         "scipy",
         "scikit-learn",
