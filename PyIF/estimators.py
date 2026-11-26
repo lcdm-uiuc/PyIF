@@ -1,10 +1,12 @@
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import numpy as np
 
 from . import te_compute as legacy
-from .config import KSGConfig
+from .config import KSGConfig, MSConfig
+from .ms import conditional_mi
+from .ms.numerics import prepare_collection
 
 
 @dataclass(frozen=True)
@@ -88,10 +90,86 @@ def _compute_ksg(context, config):
 
     return float(result)
 
+def _compute_ms(context, config):
+    """Estimate TE using signed Mesner-Shalizi mixed CMI."""
+
+    if context.source.ndim != 1 or context.target.ndim != 1:
+        raise ValueError("MS estimation requires 1D series")
+
+    if len(context.source) != len(context.target):
+        raise ValueError("Source and target lengths must match")
+
+    # Preserve numerical information before constructing histories.
+    prepared, _ = prepare_collection({
+        "source": context.source,
+        "target": context.target,
+    })
+
+    prepared_context = replace(
+        context,
+        source=prepared["source"],
+        target=prepared["target"],
+    )
+
+    future, target_past, source_past = prepared_context.histories()
+
+    # Match the coordinate order used in Jing's benchmarks.
+    data = np.column_stack([
+        future,
+        source_past,
+        target_past,
+    ])
+
+    if config.standardize:
+        # Rescale extreme coordinates before computing variance
+        # to avoid numerical overflow and underflow.
+        for j in range(data.shape[1]):
+            column = data[:, j]
+            maximum = float(np.max(np.abs(column)))
+
+            if maximum and (
+                maximum > 2.0**400
+                or maximum < 2.0**-400
+            ):
+                exponent = int(np.frexp(maximum)[1])
+
+                with np.errstate(
+                    over="ignore",
+                    under="ignore",
+                    invalid="ignore",
+                ):
+                    scaled = np.ldexp(column, -exponent)
+                    restored = np.ldexp(scaled, exponent)
+
+                if not np.array_equal(restored, column):
+                    raise ValueError(
+                        "Coordinate scaling loses information"
+                    )
+
+                data[:, j] = scaled
+
+        scale = data.std(axis=0)
+        data = (
+            (data - data.mean(axis=0))
+            / np.where(scale > 0, scale, 1.0)
+        )
+
+    source_end = 1 + context.source_history
+
+    return conditional_mi(
+        data[:, 0],
+        data[:, 1:source_end],
+        data[:, source_end:],
+        k=config.k_neighbors,
+    )
 
 ESTIMATORS = {
     "ksg": EstimatorSpec(
         config_type=KSGConfig,
         compute=_compute_ksg,
+    ),
+    "ms": EstimatorSpec(
+        config_type=MSConfig,
+        compute=_compute_ms,
     ),
 }

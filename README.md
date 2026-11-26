@@ -3,7 +3,7 @@
 An open source implementation to compute bi-variate Transfer Entropy.
 
 
-PyIF provides the original `te_compute()` function and a new `estimate_te()` interface. The refactored interface currently supports KSG estimation.
+PyIF provides the original `te_compute()` function and a shared `estimate_te()` interface supporting both KSG and Mesner-Shalizi transfer entropy estimation.
 
 ## Installation
 
@@ -58,6 +58,55 @@ The estimate is from `source` to `target`. The returned
 `TEResult` also contains resolved settings, tie counts,
 input hashes, and software provenance.
 
+## Mesner-Shalizi estimator
+
+The Mesner-Shalizi estimator uses mixed conditional mutual information to estimate transfer entropy for numeric discrete, continuous, and mixed data. It is particularly useful for series containing repeated observations or exact zeros, where KSG estimates may be unreliable.
+
+```python
+import numpy as np
+from PyIF import estimate_te
+from PyIF.config import MSConfig
+
+rng = np.random.default_rng(23)
+source = rng.normal(size=1000)
+target = rng.normal(size=1000)
+target[1:] += 0.8 * source[:-1]
+
+result = estimate_te(
+    source=source,
+    target=target,
+    estimator="ms",
+    target_history=1,
+    source_history=1,
+    delay=1,
+    config=MSConfig(
+        k_neighbors=16,
+        standardize=True,
+    ),
+)
+
+print(result.raw_te)
+```
+
+The estimator accepts the following configuration options:
+
+- `k_neighbors`: number of nearest neighbors (default: 16).
+- `standardize`: standardize each aligned coordinate before estimation (default: True).
+
+Unlike the legacy KSG implementation, Mesner-Shalizi supports independently configurable source and target history lengths and positive source-to-target delays.
+
+Inputs must be finite, real-valued, one-dimensional NumPy arrays of equal length. The number of neighbors must be smaller than the number of aligned history rows.
+
+Exact ties are retained without random jitter. Estimates are reported in nats and are not clipped to zero. Although population transfer entropy is nonnegative, finite-sample estimates may be negative.
+
+The estimator has been validated against known-answer benchmarks involving Gaussian dependence, zero-heavy independent series, exact echoes, and gated information transfer. Its neighbor calculations have also been checked against an independent brute-force implementation.
+
+These benchmarks do not establish accuracy for every mixed or dependent time series. Estimation may remain sensitive to sample size, history length, neighbor count, and deterministic relationships.
+
+Mesner-Shalizi currently uses CPU-based computation and does not provide statistical inference.
+
+Reference: O. C. Mesner and C. R. Shalizi, "Conditional Mutual Information Estimation for Mixed Discrete and Continuous Data." https://arxiv.org/abs/1912.03387
+
 ## Arguments
 
 The legacy `te_compute(X, Y)` function accepts NumPy arrays with shape `(N,)` or `(N, 1)`. It estimates transfer entropy from `Y` (source) to `X` (target). The following arguments are optional:
@@ -73,9 +122,14 @@ PyIF uses a shared `estimate_te()` interface with estimator-specific configurati
 
 Each estimator receives a `TEContext` containing the source, target, and requested history settings. The context can construct aligned future observations, target histories, and source histories using `context.histories()`. An estimator returns a transfer entropy estimate in nats, which the public interface wraps in `TEResult` with resolved settings, input hashes, tie counts, and software provenance.
 
-KSG is currently the only implemented production estimator. It retains its existing computational path. Additional estimators can use the shared histories while implementing their own numerical methods and tie handling.
+The registry currently contains two estimators:
 
-Conditional TE, surrogate inference, and additional estimator implementations remain planned features.
+- `ksg`: retains the legacy KSG computational path and uses `KSGConfig`.
+- `ms`: implements Mesner-Shalizi mixed conditional mutual information using the shared history preparation interface and `MSConfig`.
+
+Both estimators return the same `TEResult` structure while maintaining independent numerical methods and configuration settings. KSG remains the default estimator for backward compatibility.
+
+Conditional TE with additional conditioning series, surrogate inference, and further estimator implementations remain planned features.
 
 `docs/historical/tested-commit.txt` records the original upstream baseline used for comparison, not the current refactor revision. The refactored package records its own source Git provenance.
 
@@ -98,9 +152,11 @@ te_value = workspace.estimate_ksg(
 
 `TEWorkspace` accepts one-dimensional, finite, equal-length series. `estimate_ksg()` currently uses the optimized CPU KSG implementation and returns a single `float` in nats, not a `TEResult`. It does not include the version, commit, input hashes, or tie counts returned by the public `estimate_te()` interface. Users of the workspace path must record that metadata separately.
 
-The public `estimate_te()` interface currently uses the legacy KSG computational path. Integrating the optimized path while retaining structured results is planned for a follow-up change.
+When KSG is selected, the public `estimate_te()` interface currently uses the legacy KSG computational path. Integrating the optimized path while retaining structured results is planned for a follow-up change.
 
-**Exact ties:** KSG estimates may be unreliable when input values repeat, because the current neighbor-counting rules do not consistently handle zero distances. Reported tie counts are diagnostic information, not a correction for this issue.
+**Exact ties:** KSG estimates may be unreliable when input values repeat, because the current neighbor-counting rules do not consistently handle zero distances. Reported tie counts are diagnostic information, not a correction for this issue. For data containing substantial numbers of repeated values or exact zeros, consider using the Mesner-Shalizi estimator instead. Optional standardization may introduce numerical ties through floating-point rounding when observations differ substantially in magnitude. Set `standardize=False` to disable this preprocessing.
+
+Additional limitations of the legacy implementation are documented in [Known estimator issues](docs/known_issues.md).
 
 ## Development installation
 
